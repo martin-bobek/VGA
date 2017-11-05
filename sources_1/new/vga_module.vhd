@@ -2,29 +2,28 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 
 entity vga_module is
-    Port (  
-            clk : in  STD_LOGIC;
-            buttons: in STD_LOGIC_VECTOR(2 downto 0);
-            switches: in STD_LOGIC_VECTOR(14 downto 0);
-            red: out STD_LOGIC_VECTOR(3 downto 0);
-            green: out STD_LOGIC_VECTOR(3 downto 0);
-            blue: out STD_LOGIC_VECTOR(3 downto 0);
-            hsync: out STD_LOGIC;
-            vsync: out STD_LOGIC
+    port (  
+        clk: in std_logic;
+        buttons: in std_logic_vector(2 downto 0);
+        switches: in std_logic_vector(14 downto 0);
+        red: out std_logic_vector(3 downto 0);
+        green: out std_logic_vector(3 downto 0);
+        blue: out std_logic_vector(3 downto 0);
+        hsync: out std_logic;
+        vsync: out std_logic
 	 );
-end vga_module;
+end;
 
-architecture Behavioral of vga_module is
--- Components:
+architecture behavioral of vga_module is
     component debouncer is
         generic(
-            period: integer := 50;
-            width: integer := 5
+            period: integer;
+            width: integer
         );
         port(
             clk:in std_logic;
             input:in std_logic;
-            result:out std_logic
+            output:out std_logic
         );
     end component;
 
@@ -40,17 +39,19 @@ component sync_signals_generator is
 		  );
 end component;
 
-component up_down_counter is
-	Generic ( WIDTH: integer:= 6);
-	Port (
-		up: in STD_LOGIC;
-		down: in STD_LOGIC;
-        clk: in std_logic;
-		reset: in std_logic;
-		enable: in std_logic;
-        val: out STD_LOGIC_VECTOR(WIDTH-1 downto 0)
-	);
-end component;
+    component up_down_counter is
+        generic (
+           width: integer
+        );
+        port (
+            clk: in std_logic;
+            reset: in std_logic;
+            enable: in std_logic;
+            up: in std_logic;
+            down: in std_logic;
+            value: out std_logic_vector(width - 1 downto 0)
+        );
+    end component;
 
 -- ADDED
 component clock_divider is
@@ -68,18 +69,19 @@ Port (  clk : in  STD_LOGIC;
 	  );
 end component;
 
-component vga_stripes_dff is
-    Port ( clk : in STD_LOGIC;
-           pixel_clk : in  STD_LOGIC;
-           reset : in  STD_LOGIC;
-           next_pixel : in  STD_LOGIC;
-		   mode: in STD_LOGIC;
-           B : out  STD_LOGIC_VECTOR (3 downto 0);
-           G : out  STD_LOGIC_VECTOR (3 downto 0);
-           R : out  STD_LOGIC_VECTOR (3 downto 0)
-         );
- end component;
- 
+    component vga_stripes_dff is
+        port(
+            clk: in std_logic;
+            reset: in std_logic;
+            pixel_clk: in std_logic;
+            enable: in std_logic;
+            mode: in std_logic;
+            red: out std_logic_vector(3 downto 0);
+            green: out std_logic_vector(3 downto 0);
+            blue: out std_logic_vector(3 downto 0)
+        );
+    end component;
+
  component bouncing_box is
  Port (  clk : in  STD_LOGIC;
          reset : in  STD_LOGIC;
@@ -146,7 +148,7 @@ debounce_switches: for i in 0 to 14 generate
         port map(
             clk => clk,
             input => switches(i),
-            result => d_switches(i)
+            output => d_switches(i)
         );        
 end generate;
 
@@ -159,7 +161,7 @@ debounce_buttons: for i in 0 to 2 generate
         port map(
             clk => clk,
             input => buttons(i),
-            result => d_buttons(i)
+            output => d_buttons(i)
         );
 end generate;
 
@@ -174,28 +176,32 @@ VGA_SYNC: sync_signals_generator
                 scan_line_y => scan_line_y
 			  );
 
-CHANGE_BOX_SIZE: up_down_counter
-	Generic map( 	WIDTH => 9)
-	Port map(
-					up 	   => inc_box,
-					down   => dec_box,
-					clk	   => clk,
-					reset  => reset,
-					enable => box_size_enable,
-                    val    => box_size
-	);
-
-
-CHANGE_LETTER_SIZE: up_down_counter
-    Generic map(    WIDTH => 5)
-    port map(
-        up => inc_box,
-        down => dec_box,
-        clk => clk,
-        reset => reset,
-        enable => letter_size_enable,
-        val => letter_size
+    box_size_counter: up_down_counter
+        generic map(
+            width => 9
+        )
+        port map(
+            clk => clk,
+            reset => reset,
+            enable => box_size_enable,
+            up => inc_box,
+            down => dec_box,
+            value => box_size
         );
+    
+    letter_size_counter: up_down_counter
+        generic map(
+            width => 5
+        )
+        port map(
+            clk => clk,
+            reset => reset,
+            enable => letter_size_enable,
+            up => inc_box,
+            down => dec_box,
+            value => letter_size
+        );
+
 -- ADDED	
 DIVIDER: clock_divider
     Port map (  clk              => clk,
@@ -210,18 +216,19 @@ DIVIDER: clock_divider
                 hHz              => i_hHz,
                 dHz              => i_dHz
 		  );
-		  
-STRIPES_DFF: vga_stripes_dff
-	Port map ( clk        => clk,
-	           pixel_clk  => i_pixel_clk,
-               reset      => reset,
-               next_pixel => show_stripe,
-               mode       => d_switches(0), -- can be a different switch
-               B          => stripe_blue,
-               G          => stripe_green,
-               R          => stripe_red
-             );
-             
+        
+    stripes_dff: vga_stripes_dff
+        port map(
+            clk => clk,
+            reset => reset,
+            pixel_clk => i_pixel_clk,
+            enable => show_stripe,
+            mode => d_switches(0),
+            red => stripe_red,
+            green => stripe_green,
+            blue => stripe_blue
+        );
+    
 BOX: bouncing_box
     Port map ( clk         => clk,
                reset       => reset,
