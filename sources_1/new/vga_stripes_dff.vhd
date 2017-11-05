@@ -32,7 +32,7 @@ begin
             current_state <= s0;
             captured_mode <= mode;
         elsif rising_edge(clk) and (enable = '1') and (pixel_clk = '1') then
-            if (pixel_count <= stripe_width) then
+            if (pixel_count = stripe_width) then
                 pixel_count <= (others => '0');
                 current_state <= next_state;
                 if (next_state = s0) then
