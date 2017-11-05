@@ -1,79 +1,61 @@
-
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
-use IEEE.STD_LOGIC_ARITH.ALL;
-use IEEE.STD_LOGIC_UNSIGNED.ALL;
+use IEEE.NUMERIC_STD.ALL;
 
-entity sync_signals_generator is
-    Port ( clk : in STD_LOGIC;
-           pixel_clk : in  STD_LOGIC;
-           reset : in  STD_LOGIC;
-           hor_sync: out STD_LOGIC;
-           ver_sync: out STD_LOGIC;
-           blank: out STD_LOGIC;
-           scan_line_x: out STD_LOGIC_VECTOR(10 downto 0);
-           scan_line_y: out STD_LOGIC_VECTOR(10 downto 0)
-          );
-end sync_signals_generator;
+entity sync_signal_generator is
+    port(
+        clk: in std_logic;
+        reset: in std_logic;
+        pixel_clk: in std_logic;
+        blank: out std_logic;
+        hor_sync: out std_logic;
+        ver_sync: out std_logic;
+        scan_x: out std_logic_vector(9 downto 0);
+        scan_y: out std_logic_vector(8 downto 0)
+    );
+end;
 
-architecture Behavioral of sync_signals_generator is
-	
--- VGA Sync definitions (DON'T CHANGE THESE)
--- Horizontal definitions (measured in # of clock cycles)
-constant h_disp_time: integer:= 640; -- horizontal display area (640)
-constant h_sync_pulse: integer:= 800; -- maximum horizontal amount (limit)(800)
-constant h_front_porch: integer:= 16; -- h. front porch
-constant h_back_porch: integer:= 48;	-- h. back porch
-constant h_pulse_width: integer:= 96;	-- h. pulse width
--- Vertical definitions (measured in # of horiz lines)
-constant v_disp_time: integer:= 480; -- vertical display area
-constant v_sync_pulse: integer:= 521; -- maximum vertical amount (limit) 521
-constant v_front_porch: integer:= 10;	-- v. front porch 10
-constant v_back_porch: integer:= 29;	-- v. back porch 29
-constant v_pulse_width: integer:= 2;	-- v. pulse width 2  	
-	
-signal current_hor_pos: std_logic_vector(10 downto 0) := (others => '0');
-signal current_ver_pos: std_logic_vector(10 downto 0) := (others => '0');
-signal hor_blank, ver_blank, i_blank: std_logic;
-
+architecture behavioral of sync_signal_generator is
+    constant h_disp_time: integer := 640;
+    constant h_sync_pulse: integer := 800;
+    constant h_back_porch: integer := 48;
+    constant h_pulse_width: integer := 96;
+    constant v_disp_time: integer := 480;
+    constant v_sync_pulse: integer := 521;
+    constant v_back_porch: integer := 29;
+    constant v_pulse_width: integer := 2;  	
+        
+    signal hor_pos, ver_pos: unsigned(9 downto 0);
+    signal hor_blank, ver_blank, i_blank: std_logic;
 begin
-	PixelPosition: process(pixel_clk, reset)
-	begin
-	    if (reset = '1') then
-            -- Reset all outputs
-            current_hor_pos <= (others => '0');
-            current_ver_pos <= (others => '0');	    
-		elsif ((pixel_clk = '1') AND rising_edge(clk)) then
-            if current_hor_pos < h_sync_pulse-1 then
-                current_hor_pos <= current_hor_pos + 1;
-            else
-                if current_ver_pos < v_sync_pulse-1 then
-                    current_ver_pos <= current_ver_pos + 1;
+    blank <= i_blank;
+    hor_sync <= '0' when (hor_pos < h_pulse_width) else '1';
+    ver_sync <= '0' when (ver_pos < v_pulse_width) else '1';
+    
+    hor_blank <= '0' when (hor_pos >= h_pulse_width + h_back_porch) and
+                          (hor_pos < h_pulse_width + h_back_porch + h_disp_time) else '1';
+    ver_blank <= '0' when (ver_pos >= v_pulse_width + v_back_porch) and
+                          (ver_pos < v_pulse_width + v_back_porch + v_disp_time) else '1';
+    i_blank <= hor_blank or ver_blank;
+    scan_x <= std_logic_vector(hor_pos - h_pulse_width - h_back_porch) when (i_blank = '0') else (others => '0');
+    scan_y <= std_logic_vector(resize(ver_pos - v_pulse_width - v_back_porch, 9)) when (i_blank = '0') else (others => '0');
+    
+    process(clk, reset) begin
+        if (reset = '1') then
+            hor_pos <= (others => '0');
+            ver_pos <= (others => '0');
+        elsif rising_edge(clk) and (pixel_clk = '1') then
+            if (hor_pos + 1 = h_sync_pulse) then
+                if (ver_pos + 1 = v_sync_pulse) then
+                    ver_pos <= (others => '0');
                 else
-                   -- Resets Vertical position (reached bottom of screen)
-                    current_ver_pos <= (others => '0');		
+                    ver_pos <= ver_pos + 1;
                 end if;
-                -- Resets Horizontal position (reached right side of screen)
-                current_hor_pos <= (others => '0');			
-            end if;	
-		end if;
-	end process PixelPosition;
-
--- Complete the description with relevant VERTICAL signals (ver_sync, ver_blank and scan_line_y)
-hor_sync <= '0' when current_hor_pos < h_pulse_width else '1';
-
-hor_blank <= '0' when (current_hor_pos >= h_pulse_width + h_back_porch) and 
-                      (current_hor_pos < h_pulse_width + h_back_porch + h_disp_time) else '1';
-
-scan_line_x <= (current_hor_pos - h_pulse_width - h_back_porch) when i_blank = '0' else (others => '0');
-
--- ADDED:
-ver_sync <= '0' when current_ver_pos < v_pulse_width else '1';
-ver_blank <= '0' when (current_ver_pos >= v_pulse_width + v_back_porch) and 
-                      (current_ver_pos < v_pulse_width + v_back_porch + v_disp_time) else '1';
-scan_line_y <= (current_ver_pos - v_pulse_width - v_back_porch) when i_blank = '0' else (others => '0');
-
-i_blank	<= '1' when hor_blank = '1' or ver_blank = '1' else '0';
-blank <= i_blank;
-end Behavioral;
-
+                
+                hor_pos <= (others => '0');
+            else
+                hor_pos <= hor_pos + 1;
+            end if;
+        end if;
+    end process;
+end;

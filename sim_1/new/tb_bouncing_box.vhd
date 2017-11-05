@@ -10,8 +10,8 @@ architecture behavior of tb_bouncing_box is
    COMPONENT bouncing_box
     Port ( clk : in  STD_LOGIC;
            reset : in  STD_LOGIC;
-           scan_line_x: in STD_LOGIC_VECTOR(10 downto 0);
-           scan_line_y: in STD_LOGIC_VECTOR(10 downto 0);
+           scan_line_x: in STD_LOGIC_VECTOR(9 downto 0);
+           scan_line_y: in STD_LOGIC_VECTOR(8 downto 0);
            box_color: in STD_LOGIC_VECTOR(11 downto 0);
            box_width: in STD_LOGIC_VECTOR(8 downto 0);
            kHz: in STD_LOGIC;
@@ -24,8 +24,8 @@ architecture behavior of tb_bouncing_box is
     --Inputs
     signal clk : std_logic;
     signal reset : std_logic;
-    signal scan_line_x: std_logic_vector(10 downto 0) := "01000000001"; -- stay on the same x,y location
-    signal scan_line_y: std_logic_vector(10 downto 0) := "01000000001";
+    signal scan_line_x: std_logic_vector(9 downto 0) := "01000000001"; -- stay on the same x,y location
+    signal scan_line_y: std_logic_vector(8 downto 0) := "000000001";
     signal box_color: std_logic_vector(11 downto 0) ; -- don't need to change the color
     signal box_width: std_logic_vector(8 downto 0);
     signal kHz: std_logic;

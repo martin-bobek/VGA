@@ -7,8 +7,8 @@ entity bouncing_box is
     port( 	
         clk : in  STD_LOGIC;
         reset : in  STD_LOGIC;
-        scan_line_x: in STD_LOGIC_VECTOR(10 downto 0);
-        scan_line_y: in STD_LOGIC_VECTOR(10 downto 0);
+        scan_line_x: in STD_LOGIC_VECTOR(9 downto 0);
+        scan_line_y: in STD_LOGIC_VECTOR(8 downto 0);
         box_color: in STD_LOGIC_VECTOR(11 downto 0);
         box_width: in STD_LOGIC_VECTOR(8 downto 0);
         box_or_letter: in STD_LOGIC;

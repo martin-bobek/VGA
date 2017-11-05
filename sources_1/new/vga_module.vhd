@@ -26,19 +26,20 @@ architecture behavioral of vga_module is
             output:out std_logic
         );
     end component;
-
-component sync_signals_generator is
-    Port ( clk : in STD_LOGIC;
-           pixel_clk : in  STD_LOGIC;
-           reset : in  STD_LOGIC;
-           hor_sync: out STD_LOGIC;
-           ver_sync: out STD_LOGIC;
-           blank: out STD_LOGIC;
-           scan_line_x: out STD_LOGIC_VECTOR(10 downto 0);
-           scan_line_y: out STD_LOGIC_VECTOR(10 downto 0)
-		  );
-end component;
-
+    
+    component sync_signal_generator is
+        port(
+            clk: in std_logic;
+            reset: in std_logic;
+            pixel_clk: in std_logic;
+            blank: out std_logic;
+            hor_sync: out std_logic;
+            ver_sync: out std_logic;
+            scan_x: out std_logic_vector(9 downto 0);
+            scan_y: out std_logic_vector(8 downto 0)
+        );
+    end component;
+    
     component up_down_counter is
         generic (
            width: integer
@@ -114,7 +115,8 @@ signal i_kHz, i_hHz, i_dHz, i_pixel_clk: std_logic;
 
 -- Sync module signals:
 signal vga_blank : std_logic;
-signal scan_line_x, scan_line_y: STD_LOGIC_VECTOR(10 downto 0);
+signal scan_line_x: std_logic_vector(9 downto 0);
+signal scan_line_y: std_logic_vector(8 downto 0);
 
 -- Box size signals:
 signal inc_box, dec_box: std_logic;
@@ -138,44 +140,44 @@ signal d_buttons: std_logic_vector(2 downto 0);
 signal box_size_enable, letter_size_enable: std_logic;
 
 begin
+    debounce_switches: for i in 0 to 14 generate
+        debounce_i: debouncer
+            generic map(
+                period => 1000000,
+                width => 20
+            )
+            port map(
+                clk => clk,
+                input => switches(i),
+                output => d_switches(i)
+            );        
+    end generate;
 
-debounce_switches: for i in 0 to 14 generate
-    debounce_i: debouncer
-        generic map(
-            period => 1000000,
-            width => 20
-        )
+    debounce_buttons: for i in 0 to 2 generate
+        debounce_i: debouncer
+            generic map(
+                period => 1000000,
+                width => 20
+            )
+            port map(
+                clk => clk,
+                input => buttons(i),
+                output => d_buttons(i)
+            );
+    end generate;
+
+    vga_sync: sync_signal_generator
         port map(
             clk => clk,
-            input => switches(i),
-            output => d_switches(i)
-        );        
-end generate;
-
-debounce_buttons: for i in 0 to 2 generate
-    debounce_i: debouncer
-        generic map(
-            period => 1000000,
-            width => 20
-        )
-        port map(
-            clk => clk,
-            input => buttons(i),
-            output => d_buttons(i)
+            reset => reset,
+            pixel_clk => i_pixel_clk,
+            blank => vga_blank,
+            hor_sync => hsync,
+            ver_sync => vsync,
+            scan_x => scan_line_x,
+            scan_y => scan_line_y
         );
-end generate;
-
-VGA_SYNC: sync_signals_generator
-    Port map( 	clk         => clk,
-                pixel_clk   => i_pixel_clk,
-                reset       => reset,
-                hor_sync    => hsync,
-                ver_sync    => vsync,
-                blank       => vga_blank,
-                scan_line_x => scan_line_x,
-                scan_line_y => scan_line_y
-			  );
-
+    
     box_size_counter: up_down_counter
         generic map(
             width => 9
@@ -283,4 +285,3 @@ end process selectOutput;
 -----------------------------------------------------------------------------
 
 end Behavioral;
-
