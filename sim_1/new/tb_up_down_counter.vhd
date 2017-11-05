@@ -1,86 +1,71 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 
-entity tb_up_down_counter is
-end tb_up_down_counter;
+entity tb_up_down_counter is end;
 
 architecture behavior of tb_up_down_counter is
-
-    -- Component Declaration for the Unit Under Test (UUT)
- 
-    COMPONENT up_down_counter
-        Generic (   WIDTH: integer:= 6);
-        Port    (
-                    up: in STD_LOGIC;
-                    down: in STD_LOGIC;
-                    clk: in STD_LOGIC;
-                    reset: in STD_LOGIC;
-                    enable: in STD_LOGIC;
-                    val: out STD_LOGIC_VECTOR(WIDTH-1 downto 0)
-                );
-    END COMPONENT;
+    component up_down_counter
+        generic(
+           width: integer
+        );
+        port(
+            clk: in std_logic;
+            reset: in std_logic;
+            enable: in std_logic;
+            up: in std_logic;
+            down: in std_logic;
+            value: out std_logic_vector(width - 1 downto 0)
+        );
+    end component;
     
-    --Inputs
-    signal clk: std_logic;
-    signal reset: std_logic;
+    constant clk_period: time := 1 ns;
+    
+    signal clk: std_logic := '1';
+    signal reset: std_logic := '1';
     signal enable: std_logic;
     signal up: std_logic := '0';
     signal down: std_logic := '0';
-    
-	--Outputs
-    signal val: STD_LOGIC_VECTOR(6-1 downto 0);
-    
-   -- Clock period definitions
-   constant clk_period : time := 10 ns;
- 
-BEGIN
- 
-	-- Instantiate the Unit Under Test (UUT)
-   uut: up_down_counter PORT MAP (
-          up => up,
-          down => down,
-          clk => clk,
-          reset => reset,
-          enable => enable,
-          val => val                       
+    signal value: std_logic_vector(5 downto 0);
+begin
+    uut: up_down_counter
+        generic map(
+            width => 6
+        )
+        port map(
+            clk => clk,
+            reset => reset,
+            enable => enable,
+            up => up,
+            down => down,
+            value => value
         );
 
-   -- Clock process 
-   ClockProcess :process
-   begin
-		clk <= '0';
-		wait for clk_period/2;
-		clk <= '1';
-		wait for clk_period/2;
-   end process; 
-
-  -- Enable process
-  EnableProcess :process
-  begin
-       enable <= '0';
-       wait for clk_period*3;
-       enable <= '1';
-       wait for clk_period;
-  end process; 
+    process begin
+        enable <= '0';
+        wait for clk_period*3;
+        enable <= '1';
+        wait for clk_period;
+    end process;
   
-   -- Stimulus process
-   StimulusProcess: process
-   begin		
-      -- hold reset state for 20 ns.
-		reset <= '0';
-      wait for 10 ns;	
-		reset <= '1';
-      wait for 20 ns;
-		reset <= '0';
-      wait for 10 ns;
+    process begin
+        wait for 3*clk_period;
         up <= '1';
-      wait for 150 ns;
+        wait for 15*clk_period;
         up <= '0';
-      wait for 100 ns;
+        wait for 5*clk_period;
         down <= '1';
-      wait for 150 ns;
+        wait for 15*clk_period;
         down <= '0';
-      wait for 100 ns;
-   end process;
-
-END;
+        wait;
+    end process;   
+    
+    process begin
+        enable <= '0';
+        wait for 3*clk_period;
+        enable <= '1';
+        wait for clk_period;
+    end process;   
+    
+    reset <= '0' after 5*clk_period/2;
+    clk <= not clk after clk_period/2;
+end;
