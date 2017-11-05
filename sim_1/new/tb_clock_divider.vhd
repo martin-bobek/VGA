@@ -1,87 +1,35 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 
-entity tb_clock_divider is
-end tb_clock_divider;
+entity tb_clock_divider is end;
 
-ARCHITECTURE behavior OF tb_clock_divider IS 
- 
-    -- Component Declaration for the Unit Under Test (UUT)
- 
-    COMPONENT clock_divider
-    Port ( clk : in  STD_LOGIC;
-           reset : in  STD_LOGIC;
-           enable: in STD_LOGIC;
-           kHz: out STD_LOGIC;
-           seconds_port: out STD_LOGIC_VECTOR(4-1 downto 0);
-           ten_seconds_port: out STD_LOGIC_VECTOR(3-1 downto 0);
-           minutes_port: out STD_LOGIC_VECTOR(4-1 downto 0);
-           ten_minutes_port: out STD_LOGIC_VECTOR(3-1 downto 0);
-           -- ADDED
-           twentyfive_MHz: out STD_LOGIC;
-           hHz: out STD_LOGIC
-          );
-    END COMPONENT;
-    
-    --Inputs
-    signal clk : std_logic := '0';
-    signal reset : std_logic := '0';
-    signal enable: std_logic := '1';
-
-	--Outputs
-    signal kHz: STD_LOGIC;
-    signal seconds_port: STD_LOGIC_VECTOR(4-1 downto 0);
-    signal ten_seconds_port: STD_LOGIC_VECTOR(3-1 downto 0);
-    signal minutes_port: STD_LOGIC_VECTOR(4-1 downto 0);
-    signal ten_minutes_port: STD_LOGIC_VECTOR(3-1 downto 0);
-    
-    -- ADDED
-    signal hHz: STD_LOGIC;
-    signal twentyfive_MHz: STD_LOGIC;
-
-   -- Clock period definitions
-   constant clk_period : time := 10 ns;
- 
-BEGIN
- 
-	-- Instantiate the Unit Under Test (UUT)
-   uut: clock_divider PORT MAP (
-          clk => clk,
-          reset => reset,
-          enable => enable,
-          kHz => kHz,
-          seconds_port => seconds_port,
-          ten_seconds_port => ten_seconds_port,
-          minutes_port => minutes_port,
-          ten_minutes_port => ten_minutes_port,
-          -- ADDED
-          twentyfive_MHz => twentyfive_MHz,
-          hHz => hHz                           
+architecture behavioural of tb_clock_divider is
+    component clock_divider is
+        port(
+            clk: in std_logic;
+            reset: in std_logic;
+            twentyfive_MHz: out std_logic;
+            kHz: out std_logic;
+            hHz: out std_logic;
+            dHz: out std_logic
         );
+    end component;
 
-   -- Clock process definitions
-   clk_process :process
-   begin
-		clk <= '0';
-		wait for clk_period/2;
-		clk <= '1';
-		wait for clk_period/2;
-   end process; 
+    constant clk_period: time := 1ns;
 
-   -- Stimulus process
-   stim_proc: process
-   begin		
-      -- hold reset state for 100 ns.
-		reset <= '0';
-      wait for 100 ns;	
-		reset <= '1';
-      wait for 100 ns;
-		reset <= '0';
-      wait for 100 ns;
-        enable <= '0';
-      wait for 100 ns;
-        enable <= '1';
-      wait;
-   end process;
-
-END;
+    signal clk, reset: std_logic := '1';
+    signal twentyfive_MHz, kHz, hHz, dHz: std_logic;
+begin
+    uut: clock_divider
+        port map(
+            clk => clk,
+            reset => reset,
+            twentyfive_MHz => twentyfive_MHz,
+            kHz => kHz,
+            hHz => hHz,
+            dHz => dHz
+        );
+    
+    reset <= '0' after 5*clk_period/2;
+    clk <= not clk after clk_period/2;
+end;

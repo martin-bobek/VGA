@@ -54,21 +54,16 @@ architecture behavioral of vga_module is
         );
     end component;
 
--- ADDED
-component clock_divider is
-Port (  clk : in  STD_LOGIC;
-        reset : in  STD_LOGIC;
-        enable: in STD_LOGIC;
-        kHz: out STD_LOGIC;	  
-        seconds_port: out STD_LOGIC_VECTOR(4-1 downto 0);     -- unused
-        ten_seconds_port: out STD_LOGIC_VECTOR(3-1 downto 0); -- unused
-        minutes_port: out STD_LOGIC_VECTOR(4-1 downto 0);     -- unused
-        ten_minutes_port: out STD_LOGIC_VECTOR(3-1 downto 0); -- unused
-        twentyfive_MHz: out STD_LOGIC;
-        hHz: out STD_LOGIC;
-        dHz: out std_logic
-	  );
-end component;
+    component clock_divider is
+        port(
+            clk: in std_logic;
+            reset: in std_logic;
+            twentyfive_MHz: out std_logic;
+            kHz: out std_logic;
+            hHz: out std_logic;
+            dHz: out std_logic
+        );
+    end component;
 
     component vga_stripes_dff is
         port(
@@ -204,21 +199,16 @@ begin
             value => letter_size
         );
 
--- ADDED	
-DIVIDER: clock_divider
-    Port map (  clk              => clk,
-                reset            => reset,
-                kHz              => i_kHz,
-                twentyfive_MHz   => i_pixel_clk,
-                enable           => '1',
-                seconds_port     => open,
-                ten_seconds_port => open,
-                minutes_port     => open,
-                ten_minutes_port => open,
-                hHz              => i_hHz,
-                dHz              => i_dHz
-		  );
-        
+    divider: clock_divider
+        port map(
+            clk => clk,
+            reset => reset,
+            twentyfive_MHz => i_pixel_clk,
+            kHz => i_kHz,
+            hHz => i_hHz,
+            dHz => i_dHz
+        );
+    
     stripes_dff: vga_stripes_dff
         port map(
             clk => clk,
@@ -234,8 +224,10 @@ DIVIDER: clock_divider
 BOX: bouncing_box
     Port map ( clk         => clk,
                reset       => reset,
-               scan_line_x => scan_line_x,
-               scan_line_y => scan_line_y,
+               scan_line_x(10) => '0',
+               scan_line_x(9 downto 0) => scan_line_x,
+               scan_line_y(10 downto 9) => "00",
+               scan_line_y(8 downto 0) => scan_line_y,
                box_color   => box_color,
                box_width   => size,
                box_or_letter => d_switches(14),
