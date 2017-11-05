@@ -20,13 +20,13 @@ entity bouncing_box is
 end;
 
 architecture Behavioral of bouncing_box is
-component letter_b 
-    port(
-        scale: in std_logic_vector(4 downto 0);
-        x_coord: in std_logic_vector(10 downto 0);
-        y_coord: in std_logic_vector(10 downto 0);
-        contained: out std_logic
-    );
+    component letters 
+        port(
+            scale: in std_logic_vector(4 downto 0);
+            x_coord: in std_logic_vector(9 downto 0);
+            y_coord: in std_logic_vector(8 downto 0);
+            letter: out std_logic
+        );
 end component;
 
 
@@ -245,12 +245,12 @@ begin
                                     pixel_color <= "000000000000"; -- black
     end case;
 end process;
-B: letter_b
+B: letters
     port map(
         scale => box_width(4 downto 0),
-        x_coord => letters_coord_x,
-        y_coord => letters_coord_y,
-        contained => contained
+        x_coord => letters_coord_x(9 downto 0),
+        y_coord => letters_coord_y(8 downto 0),
+        letter => contained
     );
              
     red   <= pixel_color(11 downto 8);
