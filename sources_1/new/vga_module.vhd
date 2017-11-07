@@ -5,7 +5,7 @@ entity vga_module is
     port (  
         clk: in std_logic;
         buttons: in std_logic_vector(2 downto 0);
-        switches: in std_logic_vector(14 downto 0);
+        switches: in std_logic_vector(13 downto 0);
         red: out std_logic_vector(3 downto 0);
         green: out std_logic_vector(3 downto 0);
         blue: out std_logic_vector(3 downto 0);
@@ -95,7 +95,6 @@ end component;
 -- END ADDED
 
 -- Signals:
-signal reset: std_logic;
 signal vga_select: std_logic;
 
 signal disp_blue: std_logic_vector(3 downto 0);
@@ -134,7 +133,22 @@ signal d_buttons: std_logic_vector(2 downto 0);
 
 signal box_size_enable, letter_size_enable: std_logic;
 
+    
+    signal reset: std_logic;
+    signal inc_size, dec_size: std_logic;
+    signal mode: std_logic_vector(1 downto 0);
+    signal color: std_logic_vector(11 downto 0);
+    signal pixel_clk: std_logic;
+    signal blank: std_logic;
+    signal scan_x: std_logic_vector(9 downto 0);
+    signal scan_y: std_logic_vector(8 downto 0);
 begin
+    reset <= d_buttons(0);
+    inc_size <= d_buttons(1); 
+    dec_size <= d_buttons(2);
+    mode <= d_switches(1 downto 0);
+    color <= d_switches(13 downto 2);
+    
     debounce_switches: for i in 0 to 14 generate
         debounce_i: debouncer
             generic map(
@@ -165,12 +179,12 @@ begin
         port map(
             clk => clk,
             reset => reset,
-            pixel_clk => i_pixel_clk,
-            blank => vga_blank,
+            pixel_clk => pixel_clk,
+            blank => blank,
             hor_sync => hsync,
             ver_sync => vsync,
-            scan_x => scan_line_x,
-            scan_y => scan_line_y
+            scan_x => scan_x,
+            scan_y => scan_y
         );
     
     box_size_counter: up_down_counter
@@ -249,12 +263,7 @@ green <= "0000" when (vga_blank = '1') else disp_green;
 
 -- Connect input buttons and switches:
 -- ADDED
--- These can be assigned to different switches/buttons
-reset <= d_buttons(0);
-box_color <= d_switches(13 downto 2);
-vga_select <= d_switches(1);
-inc_box <= d_buttons(1);
-dec_box <= d_buttons(2);
+-- These can be assigned to 
 
 
 box_size_enable <= i_hHz when (d_switches(14) = '0') else '0';

@@ -1,25 +1,24 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
-use IEEE.STD_LOGIC_ARITH.ALL;
-use IEEE.STD_LOGIC_UNSIGNED.ALL;
+use IEEE.NUMERIC_STD.ALL;
 
 entity bouncing_box is
-    port( 	
-        clk : in  STD_LOGIC;
-        reset : in  STD_LOGIC;
-        scan_line_x: in STD_LOGIC_VECTOR(10 downto 0);
-        scan_line_y: in STD_LOGIC_VECTOR(10 downto 0);
-        box_color: in STD_LOGIC_VECTOR(11 downto 0);
-        box_width: in STD_LOGIC_VECTOR(8 downto 0);
-        box_or_letter: in STD_LOGIC;
-        kHz: in STD_LOGIC;
-        red: out STD_LOGIC_VECTOR(3 downto 0);
-        blue: out STD_LOGIC_VECTOR(3 downto 0);
-        green: out std_logic_vector(3 downto 0)
+    port(
+        clk: in std_logic;
+        reset: in std_logic;
+        kHz: in std_logic;
+        scan_x: in std_logic_vector(9 downto 0);
+        scan_y: in std_logic_vector(8 downto 0);
+        mode: in std_logic;
+        size: in std_logic_vector(8 downto 0);
+        color: in std_logic_vector(11 downto 0);
+        red: in std_logic_vector(3 downto 0);
+        green: in std_logic_vector(3 downto 0);
+        blue: in std_logic_vector(3 downto 0)
     );
 end;
 
-architecture Behavioral of bouncing_box is
+architecture behavioral of bouncing_box is
     component letters 
         port(
             scale: in std_logic_vector(4 downto 0);
@@ -27,34 +26,7 @@ architecture Behavioral of bouncing_box is
             y_coord: in std_logic_vector(8 downto 0);
             letter: out std_logic
         );
-end component;
-
-
-component mult_width
-		Port (  
-		        box_width   : in  std_logic_vector(8 downto 0);
-		        box_width1  : out std_logic_vector(8 downto 0);
-				box_width2  : out std_logic_vector(8 downto 0);
-		        box_width3  : out std_logic_vector(8 downto 0);
-		        box_width4  : out std_logic_vector(8 downto 0);
-		        box_width5  : out std_logic_vector(8 downto 0);
-		        box_width6  : out std_logic_vector(8 downto 0);
-		        box_width7  : out std_logic_vector(8 downto 0);
-		        box_width8  : out std_logic_vector(8 downto 0);
-		        box_width9  : out std_logic_vector(8 downto 0);
-		        box_width10 : out std_logic_vector(8 downto 0);
-		        box_width11 : out std_logic_vector(8 downto 0);
-		        box_width12 : out std_logic_vector(8 downto 0);
-		        box_width13 : out std_logic_vector(8 downto 0);
-		        box_width14 : out std_logic_vector(8 downto 0);
-		        box_width15 : out std_logic_vector(8 downto 0);
-		        box_width16 : out std_logic_vector(8 downto 0);
-		        box_width17 : out std_logic_vector(8 downto 0);
-		        box_width18 : out std_logic_vector(8 downto 0);
-		        box_width19 : out std_logic_vector(8 downto 0)
-				);
-end component;
-
+    end component;
 
 signal redraw: std_logic_vector(5 downto 0):=(others=>'0');
 constant box_loc_x_min: std_logic_vector(9 downto 0) := "0000000000";
@@ -74,54 +46,16 @@ signal letters_loc_x_max: std_logic_vector(9 downto 0); -- Not constants because
 signal letters_loc_y_max: std_logic_vector(9 downto 0);
 signal letters_move_dir_x, letters_move_dir_y: std_logic;
 
-signal i_box_width1  : std_logic_vector(8 downto 0);
-signal i_box_width2  : std_logic_vector(8 downto 0);
-signal i_box_width3  : std_logic_vector(8 downto 0);
-signal i_box_width4  : std_logic_vector(8 downto 0);
-signal i_box_width5  : std_logic_vector(8 downto 0);
-signal i_box_width6  : std_logic_vector(8 downto 0);
-signal i_box_width7  : std_logic_vector(8 downto 0);
-signal i_box_width8  : std_logic_vector(8 downto 0);
-signal i_box_width9  : std_logic_vector(8 downto 0);
-signal i_box_width10 : std_logic_vector(8 downto 0);
-signal i_box_width11 : std_logic_vector(8 downto 0);
-signal i_box_width12 : std_logic_vector(8 downto 0);
-signal i_box_width13 : std_logic_vector(8 downto 0);
-signal i_box_width14 : std_logic_vector(8 downto 0);
-signal i_box_width15 : std_logic_vector(8 downto 0);
-signal i_box_width16 : std_logic_vector(8 downto 0);
-signal i_box_width17 : std_logic_vector(8 downto 0);
-signal i_box_width18 : std_logic_vector(8 downto 0);
-signal i_box_width19 : std_logic_vector(8 downto 0);
-
 signal contained: std_logic;
 
 begin
-widths: mult_width
-	Port map(   box_width   => box_width,
-				box_width1	=> i_box_width1,
-		        box_width2  => i_box_width2,
-		        box_width3  => i_box_width3,
-		        box_width4  => i_box_width4,
-		        box_width5  => i_box_width5,
-		        box_width6  => i_box_width6,
-		        box_width7  => i_box_width7,
-		        box_width8  => i_box_width8,
-		        box_width9  => i_box_width9,
-		        box_width10 => i_box_width10,
-		        box_width11 => i_box_width11,
-		        box_width12 => i_box_width12,
-		        box_width13 => i_box_width13,
-		        box_width14 => i_box_width14,
-		        box_width15 => i_box_width15,
-		        box_width16 => i_box_width16,
-		        box_width17 => i_box_width17,
-		        box_width18 => i_box_width18,
-		        box_width19 => i_box_width19
-				);
-
---letters_loc_y_max <= '0' & i_box_width7;
---letters_loc_x_max <= '0' & i_box_width19;
+    process(clk, reset) begin
+        if (reset = '1') then
+            
+        elsif rising_edge(clk) then
+        
+        end if;
+    end process;
 
 MoveBox: process(clk, reset)
 begin	
