@@ -11,10 +11,7 @@ entity bouncing_box is
         scan_y: in std_logic_vector(8 downto 0);
         mode: in std_logic;
         size: in std_logic_vector(8 downto 0);
-        color: in std_logic_vector(11 downto 0);
-        red: in std_logic_vector(3 downto 0);
-        green: in std_logic_vector(3 downto 0);
-        blue: in std_logic_vector(3 downto 0)
+        colored: out std_logic
     );
 end;
 

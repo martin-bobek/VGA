@@ -39,20 +39,6 @@ architecture behavioral of vga_module is
             scan_y: out std_logic_vector(8 downto 0)
         );
     end component;
-    
-    component up_down_counter is
-        generic (
-           width: integer
-        );
-        port (
-            clk: in std_logic;
-            reset: in std_logic;
-            enable: in std_logic;
-            up: in std_logic;
-            down: in std_logic;
-            value: out std_logic_vector(width - 1 downto 0)
-        );
-    end component;
 
     component clock_divider is
         port(
@@ -77,77 +63,62 @@ architecture behavioral of vga_module is
             blue: out std_logic_vector(3 downto 0)
         );
     end component;
-
- component bouncing_box is
- Port (  clk : in  STD_LOGIC;
-         reset : in  STD_LOGIC;
-         scan_line_x: in STD_LOGIC_VECTOR(10 downto 0);
-         scan_line_y: in STD_LOGIC_VECTOR(10 downto 0);
-         box_color: in STD_LOGIC_VECTOR(11 downto 0);
-         box_width: in STD_LOGIC_VECTOR(8 downto 0);
-         box_or_letter: in STD_LOGIC;
-         kHz: in STD_LOGIC;
-         red: out STD_LOGIC_VECTOR(3 downto 0);
-         blue: out STD_LOGIC_VECTOR(3 downto 0);
-         green: out std_logic_vector(3 downto 0)
-      );
-end component;
--- END ADDED
-
--- Signals:
-signal vga_select: std_logic;
-
-signal disp_blue: std_logic_vector(3 downto 0);
-signal disp_red: std_logic_vector(3 downto 0);
-signal disp_green: std_logic_vector(3 downto 0);
-
--- Stripe block signals:
-signal show_stripe: std_logic;
-
--- Clock divider signals:
-signal i_kHz, i_hHz, i_dHz, i_pixel_clk: std_logic;
-
--- Sync module signals:
-signal vga_blank : std_logic;
-signal scan_line_x: std_logic_vector(9 downto 0);
-signal scan_line_y: std_logic_vector(8 downto 0);
-
--- Box size signals:
-signal inc_box, dec_box: std_logic;
-signal box_size, size: std_logic_vector(8 downto 0);
-signal letter_size: std_logic_vector(4 downto 0);
-
--- Bouncing box signals:
-signal box_color: std_logic_vector(11 downto 0);
-signal box_red: std_logic_vector(3 downto 0);
-signal box_green: std_logic_vector(3 downto 0);
-signal box_blue: std_logic_vector(3 downto 0);
-
--- ADDED
-signal stripe_red: std_logic_vector(3 downto 0);
-signal stripe_green: std_logic_vector(3 downto 0);
-signal stripe_blue: std_logic_vector(3 downto 0);
-
-signal d_switches: std_logic_vector(14 downto 0);
-signal d_buttons: std_logic_vector(2 downto 0);
-
-signal box_size_enable, letter_size_enable: std_logic;
-
+    
+    component bouncing_box is
+        port(
+            clk: in std_logic;
+            reset: in std_logic;
+            kHz: in std_logic;
+            scan_x: in std_logic_vector(9 downto 0);
+            scan_y: in std_logic_vector(8 downto 0);
+            mode: in std_logic;
+            size: in std_logic_vector(8 downto 0);
+            colored: out std_logic
+        );
+    end component;
+    
+    component up_down_counter is
+        generic (
+           width: integer
+        );
+        port (
+            clk: in std_logic;
+            reset: in std_logic;
+            enable: in std_logic;
+            up: in std_logic;
+            down: in std_logic;
+            value: out std_logic_vector(width - 1 downto 0)
+        );
+    end component;
     
     signal reset: std_logic;
+    signal d_switches: std_logic_vector(14 downto 0);
+    signal d_buttons: std_logic_vector(2 downto 0);
     signal inc_size, dec_size: std_logic;
     signal mode: std_logic_vector(1 downto 0);
     signal color: std_logic_vector(11 downto 0);
-    signal pixel_clk: std_logic;
+    signal pixel_clk, kHz, hHz, dHz: std_logic;
     signal blank: std_logic;
     signal scan_x: std_logic_vector(9 downto 0);
     signal scan_y: std_logic_vector(8 downto 0);
+    signal next_red, next_green, next_blue: std_logic_vector(3 downto 0);
+    signal stripe_red, stripe_green, stripe_blue: std_logic_vector(3 downto 0);
+    signal box_size_enable, letter_size_enable: std_logic;
+    signal box_size, size: std_logic_vector(8 downto 0);
+    signal letter_size: std_logic_vector(4 downto 0);
+    signal colored: std_logic;
+    signal not_blank: std_logic;
 begin
     reset <= d_buttons(0);
     inc_size <= d_buttons(1); 
     dec_size <= d_buttons(2);
     mode <= d_switches(1 downto 0);
     color <= d_switches(13 downto 2);
+    
+    box_size_enable <= hHz when (mode = "00") else '0';
+    letter_size_enable <= dHz when (mode = "01") else '0';
+    size <= ("0000" & letter_size) when (mode(0) = '1') else box_size;
+    not_blank <= blank;    
     
     debounce_switches: for i in 0 to 14 generate
         debounce_i: debouncer
@@ -186,6 +157,40 @@ begin
             scan_x => scan_x,
             scan_y => scan_y
         );
+
+    divider: clock_divider
+        port map(
+            clk => clk,
+            reset => reset,
+            twentyfive_MHz => pixel_clk,
+            kHz => kHz,
+            hHz => hHz,
+            dHz => dHz
+        );
+    
+    box: bouncing_box
+        port map(
+            clk => clk,
+            reset => reset,
+            kHz => kHz,
+            scan_x => scan_x,
+            scan_y => scan_y,
+            mode => mode(0),
+            size => size,
+            colored => colored
+        );
+        
+    stripes: vga_stripes_dff
+        port map(
+            clk => clk,
+            reset => reset,
+            pixel_clk => pixel_clk,
+            enable => not_blank,
+            mode => mode(0),
+            red => stripe_red,
+            green => stripe_green,
+            blue => stripe_blue
+        );
     
     box_size_counter: up_down_counter
         generic map(
@@ -195,11 +200,11 @@ begin
             clk => clk,
             reset => reset,
             enable => box_size_enable,
-            up => inc_box,
-            down => dec_box,
+            up => inc_size,
+            down => dec_size,
             value => box_size
         );
-    
+        
     letter_size_counter: up_down_counter
         generic map(
             width => 5
@@ -208,81 +213,38 @@ begin
             clk => clk,
             reset => reset,
             enable => letter_size_enable,
-            up => inc_box,
-            down => dec_box,
+            up => inc_size,
+            down => dec_size,
             value => letter_size
         );
-
-    divider: clock_divider
-        port map(
-            clk => clk,
-            reset => reset,
-            twentyfive_MHz => i_pixel_clk,
-            kHz => i_kHz,
-            hHz => i_hHz,
-            dHz => i_dHz
-        );
     
-    stripes_dff: vga_stripes_dff
-        port map(
-            clk => clk,
-            reset => reset,
-            pixel_clk => i_pixel_clk,
-            enable => show_stripe,
-            mode => d_switches(0),
-            red => stripe_red,
-            green => stripe_green,
-            blue => stripe_blue
-        );
+    process(mode(1), stripe_red, stripe_green, stripe_blue, color, colored) begin
+        if (mode(1) = '1') then
+            next_red <= stripe_red;
+            next_green <= stripe_green;
+            next_blue <= stripe_blue;
+        else
+            if (colored = '1') then
+                next_red <= color(11 downto 8);
+                next_green <= color(7 downto 4);
+                next_blue <= color(3 downto 0);
+            else
+                next_red <= "1111";
+                next_green <= "1111";
+                next_blue <= "1111";
+            end if;
+        end if;
+    end process;
     
-BOX: bouncing_box
-    Port map ( clk         => clk,
-               reset       => reset,
-               scan_line_x(10) => '0',
-               scan_line_x(9 downto 0) => scan_line_x,
-               scan_line_y(10 downto 9) => "00",
-               scan_line_y(8 downto 0) => scan_line_y,
-               box_color   => box_color,
-               box_width   => size,
-               box_or_letter => d_switches(14),
-               kHz         => i_kHz,
-               red         => box_red,
-               blue        => box_blue,
-               green       => box_green
-           );
--- END ADDED
-
-show_stripe <= not vga_blank;
-
--- BLANKING:
--- Follow this syntax to assign other colors when they are not being blanked
-red <= "0000" when (vga_blank = '1') else disp_red;
--- ADDED:
-blue  <= "0000" when (vga_blank = '1') else disp_blue;
-green <= "0000" when (vga_blank = '1') else disp_green;
-
--- Connect input buttons and switches:
--- ADDED
--- These can be assigned to 
-
-
-box_size_enable <= i_hHz when (d_switches(14) = '0') else '0';
-letter_size_enable <= i_dHz when (d_switches(14) = '1') else '0';
-size <= ("0000" & letter_size) when (d_switches(14) = '1') else box_size;
-
------------------------------------------------------------------------------
--- OUTPUT SELECTOR:
--- Select which component to display - stripes or bouncing box
-selectOutput: process(box_red, box_blue, box_green, stripe_blue, stripe_red, stripe_green)
-begin
-	case (vga_select) is
-		-- Select which input gets written to disp_red, disp_blue and disp_green
-		-- ADDED
-		when '0' => disp_red <= box_red; disp_blue <= box_blue; disp_green <= box_green;
-		when '1' => disp_red <= stripe_red; disp_blue <= stripe_blue; disp_green <= stripe_green;
-		when others => disp_red <= "0000"; disp_blue <= "0000"; disp_green <= "0000";
-	end case;
-end process selectOutput;
------------------------------------------------------------------------------
-
-end Behavioral;
+    process(next_red, next_green, next_blue, blank) begin
+        if (blank = '0') then
+            red <= next_red;
+            green <= next_green;
+            blue <= next_blue;
+        else
+            red <= "0000";
+            green <= "0000";
+            blue <= "0000";
+        end if;
+    end process;
+end;
