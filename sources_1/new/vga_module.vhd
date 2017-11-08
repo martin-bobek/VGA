@@ -118,9 +118,9 @@ begin
     box_size_enable <= hHz when (mode = "00") else '0';
     letter_size_enable <= dHz when (mode = "01") else '0';
     size <= ("0000" & letter_size) when (mode(0) = '1') else box_size;
-    not_blank <= blank;    
+    not_blank <= not blank;    
     
-    debounce_switches: for i in 0 to 14 generate
+    debounce_switches: for i in 0 to 13 generate
         debounce_i: debouncer
             generic map(
                 period => 1000000,

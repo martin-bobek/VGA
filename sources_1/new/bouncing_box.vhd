@@ -25,11 +25,11 @@ architecture behavioral of bouncing_box is
         );
     end component;
     
-    constant period: integer := 10000 - 1;
-    constant height: integer := 480 - 1;
-    constant width: integer := 680 - 1;
+    constant period: integer := 16 - 1;
+    constant height: integer := 480;
+    constant width: integer := 640;
 
-    signal counter: unsigned(0 downto 0);
+    signal counter: unsigned(3 downto 0);
     signal redraw: std_logic;
     signal u_scan_x, x_loc, x_max: unsigned(9 downto 0);
     signal x_letter: std_logic_vector(9 downto 0);
@@ -45,9 +45,11 @@ begin
     scale <= unsigned(size(4 downto 0));
     
     box_h <= unsigned(size) when (mode = '0') else resize(7 * scale, 9);
-    box_h <= unsigned(size) when (mode = '0') else resize(14 * scale, 9);
+    box_w <= unsigned(size) when (mode = '0') else resize(14 * scale, 9);
     x_letter <= std_logic_vector(u_scan_x - x_loc);
     y_letter <= std_logic_vector(u_scan_y - y_loc);
+    x_max <= width - ('0' & box_w);
+    y_max <= height - box_h;
     
     letter_mask: letters
         port map(
@@ -84,9 +86,11 @@ begin
             down <= '1';
             right <= '1';
         elsif rising_edge(clk) and (redraw = '1') then
-            if (down = '1') then
-                if (y_loc >= y_max) then
-                    y_loc <= y_max;
+            if (y_loc > y_max) then
+                y_loc <= y_max;
+                down <= '0';
+            elsif (down = '1') then
+                if (y_loc = y_max) then
                     down <= '0';
                 else
                     y_loc <= y_loc + 1;
@@ -99,9 +103,11 @@ begin
                 end if;
             end if;
             
-            if (right = '1') then
-                if (x_loc >= x_max) then
-                    x_loc <= x_max;
+            if (x_loc > x_max) then
+                x_loc <= x_max;
+                right <= '0';
+            elsif (right = '1') then
+                if (x_loc = x_max) then
                     right <= '0';
                 else
                     x_loc <= x_loc + 1;
@@ -122,7 +128,7 @@ begin
             if (mode = '1') then
                 colored <= letter;
             else
-                colored <= '0';
+                colored <= '1';
             end if;
         else
             colored <= '0';

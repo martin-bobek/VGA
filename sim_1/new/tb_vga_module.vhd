@@ -11,7 +11,7 @@ ARCHITECTURE behavior OF tb_vga_module IS
     COMPONENT vga_module
     Port (  clk : in  STD_LOGIC;
             buttons: in STD_LOGIC_VECTOR(2 downto 0);
-            switches: in STD_LOGIC_VECTOR(14 downto 0);
+            switches: in STD_LOGIC_VECTOR(13 downto 0);
             red: out STD_LOGIC_VECTOR(3 downto 0);
             green: out STD_LOGIC_VECTOR(3 downto 0);
             blue: out STD_LOGIC_VECTOR(3 downto 0);
@@ -23,7 +23,7 @@ ARCHITECTURE behavior OF tb_vga_module IS
     --Inputs
     signal clk : std_logic;
     signal buttons : std_logic_vector(2 downto 0);
-    signal switches: std_logic_vector(14 downto 0);
+    signal switches: std_logic_vector(13 downto 0);
 
 	--Outputs
 	signal red: std_logic_vector(3 downto 0);
@@ -64,15 +64,15 @@ BEGIN
    begin
         -- Reset and sync tests
         buttons <= "000"; -- This sets all buttons to 0
-        switches <= "100010101010100"; -- This sets all switches to 0
+        switches <= "00010101010100"; -- This sets all switches to 0
         wait for 20 ns;
-        switches <= "100010101010100"; -- This sets all switches to 0
+        switches <= "00010101010100"; -- This sets all switches to 0
         wait for 20 ns;
-        switches <= "100010101000000"; -- This sets all switches to 0
+        switches <= "00010101000000"; -- This sets all switches to 0
         wait for 20 ns;
-        switches <= "101000100000100"; -- This sets all switches to 0
+        switches <= "01000100000100"; -- This sets all switches to 0
         wait for 20 ns;
-        switches <= "101010001000000"; -- This sets all switches to 0
+        switches <= "01010001000000"; -- This sets all switches to 0
         wait for 20 ns;
         buttons(0) <= '1';
         wait for 200 ns;
