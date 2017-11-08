@@ -24,184 +24,108 @@ architecture behavioral of bouncing_box is
             letter: out std_logic
         );
     end component;
+    
+    constant period: integer := 10000 - 1;
+    constant height: integer := 480 - 1;
+    constant width: integer := 680 - 1;
 
-signal redraw: std_logic_vector(5 downto 0):=(others=>'0');
-constant box_loc_x_min: std_logic_vector(9 downto 0) := "0000000000";
-constant box_loc_y_min: std_logic_vector(9 downto 0) := "0000000000";
-signal box_loc_x_max: std_logic_vector(9 downto 0); -- Not constants because these dependant on box_width 
-signal box_loc_y_max: std_logic_vector(9 downto 0);
-signal pixel_color: std_logic_vector(11 downto 0);
-signal box_loc_x, box_loc_y: std_logic_vector(9 downto 0);
-signal box_move_dir_x, box_move_dir_y: std_logic;
-
---letters 
-signal letters_loc_x, letters_loc_y: std_logic_vector(9 downto 0);
-signal letters_coord_x, letters_coord_y: std_logic_vector(10 downto 0);
-constant letters_loc_x_min: std_logic_vector(9 downto 0) := "0000000000";
-constant letters_loc_y_min: std_logic_vector(9 downto 0) := "0000000000";
-signal letters_loc_x_max: std_logic_vector(9 downto 0); -- Not constants because these dependant on box_width 
-signal letters_loc_y_max: std_logic_vector(9 downto 0);
-signal letters_move_dir_x, letters_move_dir_y: std_logic;
-
-signal contained: std_logic;
-
+    signal counter: unsigned(0 downto 0);
+    signal redraw: std_logic;
+    signal u_scan_x, x_loc, x_max: unsigned(9 downto 0);
+    signal x_letter: std_logic_vector(9 downto 0);
+    signal u_scan_y, y_loc, y_max: unsigned(8 downto 0);
+    signal y_letter: std_logic_vector(8 downto 0);
+    signal box_w, box_h: unsigned(8 downto 0);
+    signal scale: unsigned(4 downto 0);
+    signal down, right: std_logic;
+    signal letter: std_logic;
 begin
+    u_scan_x <= unsigned(scan_x);
+    u_scan_y <= unsigned(scan_y);
+    scale <= unsigned(size(4 downto 0));
+    
+    box_h <= unsigned(size) when (mode = '0') else resize(7 * scale, 9);
+    box_h <= unsigned(size) when (mode = '0') else resize(14 * scale, 9);
+    x_letter <= std_logic_vector(u_scan_x - x_loc);
+    y_letter <= std_logic_vector(u_scan_y - y_loc);
+    
+    letter_mask: letters
+        port map(
+            scale => size(4 downto 0),
+            x_coord => x_letter,
+            y_coord => y_letter,
+            letter => letter
+        );
+    
     process(clk, reset) begin
         if (reset = '1') then
-            
+            redraw <= '0';
+            counter <= (others => '0');
         elsif rising_edge(clk) then
-        
+            if (kHz = '1') then
+                if (counter = period) then
+                    counter <= (others => '0');
+                    redraw <= '1';
+                else
+                    counter <= counter + 1;
+                end if;
+            end if;
+             
+            if (redraw = '1') then
+                redraw <= '0';
+            end if;
+        end if;
+    end process;
+    
+    process(clk, reset) begin
+        if (reset = '1') then
+            x_loc <= (others => '0');
+            y_loc <= (others => '0');
+            down <= '1';
+            right <= '1';
+        elsif rising_edge(clk) and (redraw = '1') then
+            if (down = '1') then
+                if (y_loc >= y_max) then
+                    y_loc <= y_max;
+                    down <= '0';
+                else
+                    y_loc <= y_loc + 1;
+                end if;
+            else
+                if (y_loc = 0) then
+                    down <= '1';
+                else
+                    y_loc <= y_loc - 1;
+                end if;
+            end if;
+            
+            if (right = '1') then
+                if (x_loc >= x_max) then
+                    x_loc <= x_max;
+                    right <= '0';
+                else
+                    x_loc <= x_loc + 1;
+                end if;
+            else
+                if (x_loc = 0) then
+                    right <= '1';
+                else
+                    x_loc <= x_loc - 1;
+                end if;
+            end if;
         end if;
     end process;
 
-MoveBox: process(clk, reset)
-begin	
-    
-    if (reset ='1') then
-        box_loc_x <= "0111000101";
-        box_loc_y <= "0001100010";
-        box_move_dir_x <= '0';
-        box_move_dir_y <= '0';
-        letters_loc_x <= "0111000101";
-        letters_loc_y <= "0001100010";
-        letters_move_dir_x <= '0';
-        letters_move_dir_y <= '0';
-        redraw <= (others=>'0');
-    elsif (rising_edge(clk)) then
-        if (box_or_letter = '0') then
-            if (kHz = '1') then
-                redraw <= redraw + 1;
-                if (redraw = "10000") then 		-- Determines the box's speed
-                    redraw <= (others => '0');
-                    if box_move_dir_x <= '0' then   -- Box moving right
-                        if (box_loc_x < box_loc_x_max) then -- Has not hit right wall
-                            box_loc_x <= box_loc_x + 1;
-                        else 
-                            box_move_dir_x <= '1';	-- Box is now moving left
-                        end if;
-                    else
-                        if (box_loc_x > box_loc_x_min) then
-                            box_loc_x <= box_loc_x - 1; -- Has not hit left wall
-                        else 
-                            box_move_dir_x <= '0';	-- Box is now moving right
-                        end if;
-                    end if;
-                    
-                    -- Complete the Y-axis motion description here
-                    -- It is very similar to X-axis motion
-                    -- ADDED
-                    if box_move_dir_y <= '0' then   -- Box moving down
-                        if (box_loc_y < box_loc_y_max) then -- Has not hit bottom wall
-                            box_loc_y <= box_loc_y + 1;
-                        else 
-                            box_move_dir_y <= '1';    -- Box is now moving up
-                        end if;
-                    else
-                        if (box_loc_y > box_loc_y_min) then
-                            box_loc_y <= box_loc_y - 1; -- Has not hit top wall
-                        else 
-                            box_move_dir_y <= '0';    -- Box is now moving down
-                        end if;
-                    end if;
-                    -- End ADDED					
-                end if;
+    process(mode, letter, scan_x, scan_y, x_loc, y_loc, box_h, box_w) begin
+        if (u_scan_x >= x_loc) and (u_scan_x < ('0' & x_loc) + box_w) and 
+                (u_scan_y >= y_loc) and (u_scan_y < ('0' & y_loc) + box_h) then
+            if (mode = '1') then
+                colored <= letter;
+            else
+                colored <= '0';
             end if;
-        elsif(box_or_letter = '1') then -- when we want the letters
-            if (kHz = '1') then
-                redraw <= redraw + 1;
-                if (redraw = "10000") then         -- Determines the box's speed
-                    redraw <= (others => '0');
-                    if letters_move_dir_x <= '0' then   -- Box moving right
-                        if (letters_loc_x < letters_loc_x_max) then -- Has not hit right wall
-                            letters_loc_x <= letters_loc_x + 1;
-                        else 
-                            letters_move_dir_x <= '1';    -- Box is now moving left
-                        end if;
-                    else
-                        if (letters_loc_x > letters_loc_x_min) then
-                            letters_loc_x <= letters_loc_x - 1; -- Has not hit left wall
-                        else 
-                            letters_move_dir_x <= '0';    -- Box is now moving right
-                        end if;
-                    end if;
-                    
-                    -- Complete the Y-axis motion description here
-                    -- It is very similar to X-axis motion
-                    -- ADDED
-                    if letters_move_dir_y <= '0' then   -- Box moving down
-                        if (letters_loc_y < letters_loc_y_max) then -- Has not hit bottom wall
-                            letters_loc_y <= letters_loc_y + 1;
-                        else 
-                            letters_move_dir_y <= '1';    -- Box is now moving up
-                        end if;
-                    else
-                        if (letters_loc_y > letters_loc_y_min) then
-                            letters_loc_y <= letters_loc_y - 1; -- Has not hit top wall
-                        else 
-                            letters_move_dir_y <= '0';    -- Box is now moving down
-                        end if;
-                    end if;
-                    -- End ADDED                    
-                end if;
-            end if;
-        end if;	
-    end if;
-end process MoveBox;
-
-boxorletter: process(box_or_letter, scan_line_x, scan_line_y, box_loc_x, box_loc_y, letters_loc_x, letters_loc_y, box_color)
-begin
-
-    case box_or_letter is
-        when '0' =>
-        --pixel_color <=  box_color when  
-        
-                              if        ((scan_line_x >= box_loc_x) and 
-                                        (scan_line_y >= box_loc_y) and 
-                                        (scan_line_x < box_loc_x+box_width) and 
-                                        (scan_line_y < box_loc_y+box_width)) 
-                                        then
-                                        pixel_color <= box_color;
-                              else
-                                        pixel_color <= "111111111111"; -- represents WHITE
-                              end if;          
-        when '1' =>
-             -- row 1      
-                           if ((unsigned(scan_line_x) >= unsigned(letters_loc_x)) and (unsigned(scan_line_y) >= unsigned(letters_loc_y)) and (contained = '1'))
-						   then
-						            pixel_color <= box_color;			                                            
-                           else
-                                    pixel_color <= "111111111111"; -- represents WHITE    
-                           end if;
-            when others =>
-                                    pixel_color <= "000000000000"; -- black
-    end case;
-end process;
-B: letters
-    port map(
-        scale => box_width(4 downto 0),
-        x_coord => letters_coord_x(9 downto 0),
-        y_coord => letters_coord_y(8 downto 0),
-        letter => contained
-    );
-             
-    red   <= pixel_color(11 downto 8);
-    green <= pixel_color(7 downto 4);
-    blue  <= pixel_color(3 downto 0);
-    
---pixel_color <= box_color when (contained = '1') else "111111111111";
-
-letters_coord_x <= scan_line_x - letters_loc_x;
-letters_coord_y <= scan_line_y - letters_loc_y;
-
-box_loc_x_max <= "1010000000" - box_width - 1;
--- Describe the value for box_loc_y_max here:
--- Hint: In binary, 640 is 1010000000 and 480 is 0111100000
--- ADDED
-box_loc_y_max <= "0111100000" - box_width - 1;
-
-letters_loc_x_max <= "1010000000" - i_box_width14 - 1;
-
-letters_loc_y_max <= "0111100000" - i_box_width7 - 1;
-
-end Behavioral;
-
+        else
+            colored <= '0';
+        end if;
+    end process;
+end;
