@@ -21,30 +21,25 @@ architecture behavioral of vga_stripes_dff is
     
     constant stripe_width: unsigned(6 downto 0) := to_unsigned(79, 7);
     
-    signal pixel_count: unsigned(6 downto 0);
+    signal pixel_count: unsigned(6 downto 0); 
     signal color: colors;
     signal current_state, next_state: states;
-    signal captured_mode: std_logic; 
 begin
     process(clk, reset) begin
         if (reset = '1') then
             pixel_count <= (others => '0');
             current_state <= s0;
-            captured_mode <= mode;
         elsif rising_edge(clk) and (enable = '1') and (pixel_clk = '1') then
             if (pixel_count = stripe_width) then
                 pixel_count <= (others => '0');
                 current_state <= next_state;
-                if (next_state = s0) then
-                    captured_mode <= mode;
-                end if;
             else
                 pixel_count <= pixel_count + 1;
             end if;
         end if;
     end process;
 
-    process(current_state, captured_mode) begin
+    process(current_state, mode) begin
         case current_state is
             when s0 =>
                 color <= c_white;
@@ -60,21 +55,21 @@ begin
                 next_state <= s4;
             when s4 => 
                 color <= c_magenta;
-                if (captured_mode = '1') then
+                if (mode = '1') then
                     next_state <= s6;
                 else
                     next_state <= s5;
                 end if;
             when s5 => 
                 color <= c_red;
-                if (captured_mode = '1') then
+                if (mode = '1') then
                     next_state <= s7;
                 else
                     next_state <= s6;
                 end if;
             when s6 => 
                 color <= c_blue;
-                if (captured_mode = '1') then
+                if (mode = '1') then
                     next_state <= s5;
                 else
                     next_state <= s7;

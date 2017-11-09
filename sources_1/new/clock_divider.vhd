@@ -6,7 +6,6 @@ entity clock_divider is
         clk: in std_logic;
         reset: in std_logic;
         twentyfive_MHz: out std_logic;
-        kHz: out std_logic;
         hHz: out std_logic;
         dHz: out std_logic
     );
@@ -27,10 +26,9 @@ architecture behavioural of clock_divider is
         );
     end component;
 
-    signal i_twentyfive_MHz, i_kHz, i_hHz: std_logic;
+    signal i_twentyfive_MHz, i_hHz: std_logic;
 begin
     twentyfive_MHz <= i_twentyfive_MHz;
-    kHz <= i_kHz;
     hHz <= i_hHz;
     
     clock1: downcounter
@@ -48,26 +46,13 @@ begin
 
     clock2: downcounter
         generic map(
-            period => 25000,
-            width => 15
+            period => 250000,
+            width => 18
         )
         port map(
             clk => clk,
             reset => reset,
             enable => i_twentyfive_MHz,
-            zero => i_kHz,
-            value => open
-        );
-    
-    clock3: downcounter
-        generic map(
-            period => 10,
-            width => 4
-        )
-        port map(
-            clk => clk,
-            reset => reset,
-            enable => i_kHz,
             zero => i_hHz,
             value => open
         );
